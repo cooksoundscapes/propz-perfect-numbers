@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Button, Flex, FormErrorMessage, Input, Stack, Text, useToast } from "@chakra-ui/react"
-import { useCallback, useEffect, useState } from "react"
+import { Button, Center, Flex, FormErrorMessage, Input, Spinner, Stack, Text } from "@chakra-ui/react"
+import { useEffect, useState } from "react"
 import { getPerfectNumbersInRange, isPerfectNumber } from "./api";
+import { useQuery } from "./useQuery";
 
 function NumberInput({ value, onChange } : { value: number; onChange: (e: any) => void}) {
   return (
@@ -24,32 +25,10 @@ function App() {
     localStorage.setItem('chakra-ui-color-mode', 'dark')
   }, [])
 
-  const [singleCheck, setSingleCheck] = useState({ value: 0, isPerfect: false })
-  const [range, setRange] = useState({ from: 0, to: 0, numbers: '' })
-
-  const toast = useToast()
-
-  const checkIsPerfect = useCallback(() => {
-    isPerfectNumber(singleCheck.value)
-      .then(response => setSingleCheck(prev => ({ ...prev, isPerfect: response })))
-      .catch(error => toast({
-        title: "Error",
-        description: error.message,
-        status: 'error',
-      }))
-  }, [singleCheck.value, toast, setSingleCheck])
-
-  const getPerfectNumberList = useCallback(() => {
-    getPerfectNumbersInRange(range.from, range.to)
-      .then(response => {
-        setRange(prev => ({ ...prev, numbers: Array.isArray(response) ?response.join(", ") : '' }))
-      })
-      .catch(error => toast({
-        title: "Error",
-        description: error.message,
-        status: 'error',
-      }))
-  }, [range.from, range.to, setRange, toast])
+  const [singleCheck, setSingleCheck] = useState(0)
+  const [range, setRange] = useState({ from: 0, to: 0 })
+  const [singleTrigger, singleCheckResult] = useQuery(isPerfectNumber)
+  const [rangeTrigger, rangeResult] = useQuery(getPerfectNumbersInRange)
 
   return (
     <Stack
@@ -67,16 +46,18 @@ function App() {
 
       <Flex gap={2} alignItems="center" marginBottom="2em">
         <NumberInput
-          value={singleCheck.value}
-          onChange={(e) => setSingleCheck(prev => ({ ...prev, value: Number(e.target.value) }))}
+          value={singleCheck}
+          onChange={(e) => setSingleCheck(Number(e.target.value))}
         />
-        <Button onClick={checkIsPerfect}>IS THIS A PERFECT NUMBER?</Button>
-        <Text 
-          fontSize="xl"
-          color={singleCheck.isPerfect ? 'green' : 'tomato'}
-        >
-          {singleCheck.isPerfect ? "YES" : "NO"}
-        </Text>
+        <Button onClick={() => singleTrigger(singleCheck)}>IS THIS A PERFECT NUMBER?</Button>
+        {singleCheckResult.isLoading ? <Spinner /> :
+          <Text 
+            fontSize="xl"
+            color={singleCheckResult?.result ? 'green' : 'tomato'}
+          >
+            {singleCheckResult?.result ? "YES" : "NO"}
+          </Text>
+        }
       </Flex>
 
       <Text fontSize="xl">Enter 2 numbers and discover the perfect numbers in between:</Text>
@@ -89,9 +70,13 @@ function App() {
           value={range.to}
           onChange={(e) => setRange(prev => ({ ...prev, to: Number(e.target.value)}))} 
         />
-        <Button onClick={getPerfectNumberList}>Go!</Button>
+        <Button onClick={() => rangeTrigger(range.from, range.to)}>Go!</Button>
       </Flex>
-      <Text fontSize="3xl" color="sugar cookie">{'Result: ' + range.numbers}</Text>
+      {rangeResult.isLoading ? <Center><Spinner /></Center> : 
+        <Text fontSize="3xl" color="sugar cookie">
+        {rangeResult.result ? 'Result: ' + rangeResult.result?.join(', ') : ''}
+        </Text>
+      }
     </Stack>
   )
 }

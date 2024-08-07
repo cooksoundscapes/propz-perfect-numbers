@@ -1,37 +1,56 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from "react"
+import { useToast } from "@chakra-ui/react";
+import { useState, useCallback, useEffect } from "react"
 
 interface QueryState<T> {
-    isLoading: boolean;
-    isSuccess: boolean;
-    result?: T;
-  }
+  isLoading: boolean;
+  isSuccess: boolean;
+  result?: T;
+  error?: string
+}
 
-export function useQuery<T>(query: (params?: any) => Promise<T>, params?: any) {
-    const [state, setState] = useState<QueryState<T>>({
-      isLoading: true,
-      isSuccess: false,
-    })
-  
-    useEffect(() => {
-      if (!state.result && state.isLoading) {
-        query(params).then((result: T) => {
-          if (result) {
-            setState({
-              isLoading: false,
-              isSuccess: true,
-              result,
-            })
-          } else {
-            setState({
-              isLoading: false,
-              isSuccess: false,
-            })
-          }
+export function useQuery<T, P extends any[]>
+  (query: (...params: P) => Promise<T>):
+  [
+    (...params: P) => void,
+    QueryState<T>
+  ]
+{
+  const [state, setState] = useState<QueryState<T>>({
+    isLoading: false,
+    isSuccess: false,
+  })
+
+  const toast = useToast()
+
+  useEffect(() => {
+    if (state.error) {
+      toast({
+        title: "Error",
+        description: state.error,
+        status: 'error',
+      })
+    }
+  }, [state.error, toast])
+
+  const trigger = useCallback((...params: P) => {
+    setState(prev => ({ ...prev, isLoading: true }));
+    query(...params)
+      .then((response: T) => {
+        setState({
+          result: response,
+          isLoading: false,
+          isSuccess: true,
         })
-      }
-    }, [params, query, state.result, state.isLoading])
-  
-  
-    return state;
-  }
+      })
+      .catch(error => {
+        setState({
+          isLoading: false,
+          isSuccess: false,
+          error: error.message
+        })
+      })
+  }, [query])
+
+  return [trigger, state]
+}
