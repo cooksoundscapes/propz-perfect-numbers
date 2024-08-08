@@ -9,9 +9,9 @@ You can use it in 2 ways:
 
 ## Usage
 
-Clone this repo, `cd` to the directory and run `./build.sh` (make sure to `chmod +x ./build.sh` it first.  
+Clone this repo, `cd` to the directory and run `./build.sh` (make sure to `chmod +x ./build.sh` it first, if needed).  
 Then, run `./run.sh` (chmod it too). The app should be available at [http://localhost:8080](http://localhost:8080)
 
 --------------------------------------------
 
-This is code assessment provided by [Propz](https://propz.com.br/)
+This code assessment is provided by [Propz](https://propz.com.br/)
